@@ -65,7 +65,8 @@
                 try {
                     log('Requesting Bluetooth device...');
                     this.device = await navigator.bluetooth.requestDevice({
-                        acceptAllDevices: true
+                        acceptAllDevices: true,
+                        optionalServices: ['00001101-0000-1000-8000-00805F9B34FB'] // Replace with your service UUID
                     });
 
                     log(`Device selected: ${this.device.name}`);
