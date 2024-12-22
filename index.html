@@ -1,24 +1,117 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <link rel="stylesheet" href="Google Sheet.css" />
-  </head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluetooth LE Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
 
-  <body>
-    <div class="container">
-      <form
-        method="post"
-        action="https://script.google.com/a/macros/univ-boumerdes.dz/s/AKfycbzS8qFZWY1qN3EsqAVPBRCHTxvifbOzu9c6TjW9cHd22ky1yWpWHClTiN2Ww_e8-o5igA/exec"
-        name="contact-form">
-        <h4>Contact Us</h4>
-        <input type="text" name="your-name" placeholder="Name" />
-        <input type="text" name="your-number" placeholder="Number" />
-        <input type="email" name="your-email" placeholder="Email" />
-        <textarea name="message" rows="7" placeholder="Your Message"></textarea>
-        <input type="submit" value="Submit" id="submit" />
-      </form>
-    </div>
+        h1 {
+            color: #333;
+        }
 
-    <script src="Google Sheet.js"></script>
-  </body>
+        .button {
+            padding: 10px 20px;
+            margin: 10px 0;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        .log {
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bluetooth LE Example</h1>
+    <button id="scanButton" class="button">Scan for Devices</button>
+    <button id="disconnectButton" class="button">Disconnect</button>
+
+    <div class="log" id="log"></div>
+
+    <script>
+        const logElement = document.getElementById('log');
+
+        function log(message) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            logElement.appendChild(p);
+        }
+
+        const BluetoothLE = {
+            device: null,
+            server: null,
+
+            async scanAndConnect() {
+                try {
+                    log('Requesting Bluetooth device...');
+                    this.device = await navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: ['battery_service'] // Replace with your service UUID
+                    });
+
+                    log(`Device selected: ${this.device.name}`);
+
+                    this.device.addEventListener('gattserverdisconnected', this.onDisconnected.bind(this));
+
+                    log('Connecting to GATT server...');
+                    this.server = await this.device.gatt.connect();
+
+                    log('Connected to GATT server!');
+
+                    // Example: Access battery level
+                    const service = await this.server.getPrimaryService('battery_service');
+                    const characteristic = await service.getCharacteristic('battery_level');
+                    const value = await characteristic.readValue();
+
+                    const batteryLevel = value.getUint8(0);
+                    log(`Battery level: ${batteryLevel}%`);
+                } catch (error) {
+                    log(`Error: ${error.message}`);
+                }
+            },
+
+            disconnect() {
+                if (!this.device) {
+                    log('No device connected.');
+                    return;
+                }
+
+                log('Disconnecting from device...');
+                if (this.device.gatt.connected) {
+                    this.device.gatt.disconnect();
+                    log('Device disconnected.');
+                } else {
+                    log('Device is already disconnected.');
+                }
+            },
+
+            onDisconnected(event) {
+                log('Device disconnected.');
+            }
+        };
+
+        document.getElementById('scanButton').addEventListener('click', () => BluetoothLE.scanAndConnect());
+        document.getElementById('disconnectButton').addEventListener('click', () => BluetoothLE.disconnect());
+    </script>
+</body>
 </html>
