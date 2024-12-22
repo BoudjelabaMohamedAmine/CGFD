@@ -43,7 +43,7 @@
 </head>
 <body>
     <h1>Bluetooth LE Example</h1>
-    <button id="scanButton" class="button">Scan for Devices</button>
+    <button id="scanButton" class="button">Scan for Devices1234</button>
     <button id="disconnectButton" class="button">Disconnect</button>
 
     <div class="log" id="log"></div>
@@ -65,8 +65,7 @@
                 try {
                     log('Requesting Bluetooth device...');
                     this.device = await navigator.bluetooth.requestDevice({
-                        acceptAllDevices: true,
-                        optionalServices: ['battery_service'] // Replace with your service UUID
+                        acceptAllDevices: true
                     });
 
                     log(`Device selected: ${this.device.name}`);
