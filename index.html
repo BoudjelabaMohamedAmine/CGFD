@@ -3,115 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bluetooth LE Example</title>
+    <title>Bluetooth Integration</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
+            text-align: center;
             padding: 20px;
-            background-color: #f4f4f9;
         }
 
-        h1 {
-            color: #333;
-        }
-
-        .button {
+        button {
             padding: 10px 20px;
-            margin: 10px 0;
             font-size: 16px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
             cursor: pointer;
+            margin: 10px;
         }
 
-        .button:hover {
-            background-color: #0056b3;
-        }
-
-        .log {
-            background: #fff;
-            border: 1px solid #ccc;
-            padding: 10px;
+        #data {
             margin-top: 20px;
-            max-height: 200px;
-            overflow-y: auto;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <h1>Bluetooth LE Example</h1>
-    <button id="scanButton" class="button">Scan for Devices12345482</button>
-    <button id="disconnectButton" class="button">Disconnect</button>
-HJY
-    <div class="log" id="log"></div>
+    <h1>Bluetooth Integration</h1>
+    <button id="connectButton">Search & Connect to HC-05</button>
+    <div id="data" class="hidden">
+        <p>Humidity: <span id="humidity">--</span>%</p>
+        <p>Temperature: <span id="temperature">--</span>&#8451;</p>
+    </div>
 
     <script>
-        const logElement = document.getElementById('log');
+        const connectButton = document.getElementById('connectButton');
+        const dataDiv = document.getElementById('data');
+        const humiditySpan = document.getElementById('humidity');
+        const temperatureSpan = document.getElementById('temperature');
 
-        function log(message) {
-            const p = document.createElement('p');
-            p.textContent = message;
-            logElement.appendChild(p);
-        }
+        connectButton.addEventListener('click', async () => {
+            try {
+                // Request a Bluetooth device
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: ['00001101-0000-1000-8000-00805f9b34fb'] // HC-05 UUID
+                });
 
-        const BluetoothLE = {
-            device: null,
-            server: null,
+                // Connect to the GATT server
+                const server = await device.gatt.connect();
 
-            async scanAndConnect() {
-                try {
-                    log('Requesting Bluetooth device...');
-                    this.device = await navigator.bluetooth.requestDevice({
-                        acceptAllDevices: true,
-                        optionalService: ['0000fee0-0000-1000-8000-00805f9b34fb', '0000fee1-0000-1000-8000-00805f9b34fb']
-                    });
+                // Get the primary service
+                const service = await server.getPrimaryService('00001101-0000-1000-8000-00805f9b34fb');
 
-                    log(`Device selected: ${this.device.name}`);
+                // Get the characteristic
+                const characteristic = await service.getCharacteristic('00001101-0000-1000-8000-00805f9b34fb');
 
-                    this.device.addEventListener('gattserverdisconnected', this.onDisconnected.bind(this));
+                // Start receiving data
+                await characteristic.startNotifications();
 
-                    log('Connecting to GATT server...');
-                    this.server = await this.device.gatt.connect();
+                characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                    const value = new TextDecoder().decode(event.target.value);
+                    const [humidity, temperature] = value.split(',');
 
-                    log('Connected to GATT server!');
+                    humiditySpan.textContent = humidity || '--';
+                    temperatureSpan.textContent = temperature || '--';
 
-                    // Example: Access battery level
-                    const service = await this.server.getPrimaryService('battery_service');
-                    const characteristic = await service.getCharacteristic('battery_level');
-                    const value = await characteristic.readValue();
+                    dataDiv.classList.remove('hidden');
+                });
 
-                    const batteryLevel = value.getUint8(0);
-                    log(`Battery level: ${batteryLevel}%`);
-                } catch (error) {
-                    log(`Error: ${error.message}`);
-                }
-            },
-
-            disconnect() {
-                if (!this.device) {
-                    log('No device connected.');
-                    return;
-                }
-
-                log('Disconnecting from device...');
-                if (this.device.gatt.connected) {
-                    this.device.gatt.disconnect();
-                    log('Device disconnected.');
-                } else {
-                    log('Device is already disconnected.');
-                }
-            },
-
-            onDisconnected(event) {
-                log('Device disconnected.');
+                alert('Connected to HC-05!');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to connect to HC-05.');
             }
-        };
-
-        document.getElementById('scanButton').addEventListener('click', () => BluetoothLE.scanAndConnect());
-        document.getElementById('disconnectButton').addEventListener('click', () => BluetoothLE.disconnect());
+        });
     </script>
 </body>
 </html>
