@@ -1,70 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connect to ESP32</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f9f9f9;
-            color: #333;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        p {
-            margin-top: 20px;
-        }
-    </style>
+  <title>ESP32 Web Bluetooth</title>
 </head>
 <body>
-    <h1>Connect to ESP32</h1>
-    <button id="connectButton">Connect to ESP32</button>
-    <p id="status">Status: Not Connected</p>
-    <p id="value">Value: --</p>
+  <h1>ESP32 BLE Interface</h1>
+  <button id="connect">Connect to ESP32</button>
+  <p id="data">Data: Waiting...</p>
 
-    <script>
-        const connectButton = document.getElementById('connectButton');
-        const status = document.getElementById('status');
-        const value = document.getElementById('value');
+  <script>
+    let device;
+    let characteristic;
 
-        connectButton.addEventListener('click', async () => {
-            try {
-                status.textContent = 'Status: Scanning for ESP32...';
-
-                // Request device with specific service UUID
-                const device = await navigator.bluetooth.requestDevice({
-                    filters: [{ services: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b'] }]
-                });
-
-                status.textContent = `Status: Connecting to ${device.name}...`;
-
-                const server = await device.gatt.connect();
-                const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
-                const characteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
-
-                // Read value from the characteristic
-                const valueData = await characteristic.readValue();
-                const decoder = new TextDecoder('utf-8');
-                value.textContent = `Value: ${decoder.decode(valueData)}`;
-
-                status.textContent = 'Status: Connected';
-            } catch (error) {
-                console.error('Error:', error);
-                status.textContent = 'Status: Failed to connect';
-            }
+    document.getElementById('connect').addEventListener('click', async () => {
+      try {
+        // Rechercher un périphérique BLE
+        device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b'] // UUID BLE du service
         });
-    </script>
+
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
+        characteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
+
+        // Lire les données depuis l'ESP32
+        characteristic.startNotifications();
+        characteristic.addEventListener('characteristicvaluechanged', (event) => {
+          const value = new TextDecoder().decode(event.target.value);
+          document.getElementById('data').innerText = `Data: ${value}`;
+        });
+
+        alert('Connecté à ESP32!');
+      } catch (error) {
+        console.error(error);
+        alert('Erreur de connexion');
+      }
+    });
+  </script>
 </body>
 </html>
