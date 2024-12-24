@@ -3,65 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bluetooth Device Scanner</title>
+    <title>Connect to ESP32</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
             padding: 20px;
-            background-color: #f4f4f9;
+            background-color: #f9f9f9;
             color: #333;
         }
-        #deviceList {
-            margin-top: 20px;
-            list-style-type: none;
-            padding: 0;
-        }
-        #deviceList li {
-            padding: 10px;
-            border: 1px solid #ddd;
-            margin-bottom: 5px;
-            background: #fff;
-            border-radius: 5px;
-        }
         button {
-            padding: 10px 15px;
+            padding: 10px 20px;
             font-size: 16px;
-            cursor: pointer;
             background-color: #007bff;
-            color: #fff;
+            color: white;
             border: none;
             border-radius: 5px;
+            cursor: pointer;
         }
         button:hover {
             background-color: #0056b3;
         }
+        p {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
-    <h1>Bluetooth Device Scanner</h1>
-    <button id="scanButton">Scan for Bluetooth Devices</button>
-    <ul id="deviceList"></ul>
+    <h1>Connect to ESP32</h1>
+    <button id="connectButton">Connect to ESP32</button>
+    <p id="status">Status: Not Connected</p>
+    <p id="value">Value: --</p>
 
     <script>
-        const scanButton = document.getElementById('scanButton');
-        const deviceList = document.getElementById('deviceList');
+        const connectButton = document.getElementById('connectButton');
+        const status = document.getElementById('status');
+        const value = document.getElementById('value');
 
-        scanButton.addEventListener('click', async () => {
+        connectButton.addEventListener('click', async () => {
             try {
-                // Request Bluetooth devices
+                status.textContent = 'Status: Scanning for ESP32...';
+
+                // Request device with specific service UUID
                 const device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: []
+                    filters: [{ services: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b'] }]
                 });
 
-                // Display the device information
-                const listItem = document.createElement('li');
-                listItem.textContent = `Name: ${device.name || 'Unnamed Device'}, ID: ${device.id}`;
-                deviceList.appendChild(listItem);
+                status.textContent = `Status: Connecting to ${device.name}...`;
+
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
+                const characteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
+
+                // Read value from the characteristic
+                const valueData = await characteristic.readValue();
+                const decoder = new TextDecoder('utf-8');
+                value.textContent = `Value: ${decoder.decode(valueData)}`;
+
+                status.textContent = 'Status: Connected';
             } catch (error) {
-                console.error('Error accessing Bluetooth devices:', error);
-                alert('Failed to access Bluetooth devices. Please ensure Bluetooth is enabled.');
+                console.error('Error:', error);
+                status.textContent = 'Status: Failed to connect';
             }
         });
     </script>
