@@ -3,80 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bluetooth Integration</title>
+    <title>Bluetooth Device Scanner</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
+            margin: 0;
             padding: 20px;
+            background-color: #f4f4f9;
+            color: #333;
         }
-
+        #deviceList {
+            margin-top: 20px;
+            list-style-type: none;
+            padding: 0;
+        }
+        #deviceList li {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+            background: #fff;
+            border-radius: 5px;
+        }
         button {
-            padding: 10px 20px;
+            padding: 10px 15px;
             font-size: 16px;
             cursor: pointer;
-            margin: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
         }
-
-        #data {
-            margin-top: 20px;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .hidden {
-            display: none;
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <h1>Bluetooth Integration</h1>
-    <button id="connectButton">Search & Connect to HC-05</button>
-    <div id="data" class="hidden">
-        <p>Humidity: <span id="humidity">--</span>%</p>
-        <p>Temperature: <span id="temperature">--</span>&#8451;</p>
-    </div>
+    <h1>Bluetooth Device Scanner</h1>
+    <button id="scanButton">Scan for Bluetooth Devices</button>
+    <ul id="deviceList"></ul>
 
     <script>
-        const connectButton = document.getElementById('connectButton');
-        const dataDiv = document.getElementById('data');
-        const humiditySpan = document.getElementById('humidity');
-        const temperatureSpan = document.getElementById('temperature');
+        const scanButton = document.getElementById('scanButton');
+        const deviceList = document.getElementById('deviceList');
 
-        connectButton.addEventListener('click', async () => {
+        scanButton.addEventListener('click', async () => {
             try {
-                // Request a Bluetooth device
+                // Request Bluetooth devices
                 const device = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
-                    optionalServices: ['00001101-0000-1000-8000-00805f9b34fb'] // HC-05 UUID
+                    optionalServices: []
                 });
 
-                // Connect to the GATT server
-                const server = await device.gatt.connect();
-
-                // Get the primary service
-                const service = await server.getPrimaryService('00001101-0000-1000-8000-00805f9b34fb');
-
-                // Get the characteristic
-                const characteristic = await service.getCharacteristic('00001101-0000-1000-8000-00805f9b34fb');
-
-                // Start receiving data
-                await characteristic.startNotifications();
-
-                characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                    const value = new TextDecoder().decode(event.target.value);
-                    const [humidity, temperature] = value.split(',');
-
-                    humiditySpan.textContent = humidity || '--';
-                    temperatureSpan.textContent = temperature || '--';
-
-                    dataDiv.classList.remove('hidden');
-                });
-
-                alert('Connected to HC-05!');
+                // Display the device information
+                const listItem = document.createElement('li');
+                listItem.textContent = `Name: ${device.name || 'Unnamed Device'}, ID: ${device.id}`;
+                deviceList.appendChild(listItem);
             } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to connect to HC-05.');
+                console.error('Error accessing Bluetooth devices:', error);
+                alert('Failed to access Bluetooth devices. Please ensure Bluetooth is enabled.');
             }
         });
     </script>
