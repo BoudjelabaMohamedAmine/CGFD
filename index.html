@@ -6,6 +6,7 @@
 <body>
   <h1>ESP32 BLE Interface</h1>
   <button id="connect">Connect to ESP32</button>
+  <button id="send">Send Data to ESP32</button>
   <p id="data">Data: Waiting...</p>
 
   <script>
@@ -14,27 +15,43 @@
 
     document.getElementById('connect').addEventListener('click', async () => {
       try {
-        // Rechercher un périphérique BLE
+        // Search for a BLE device
         device = await navigator.bluetooth.requestDevice({
           acceptAllDevices: true,
-          optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b'] // UUID BLE du service
+          optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b'] // UUID of the BLE service
         });
 
         const server = await device.gatt.connect();
         const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
         characteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
 
-        // Lire les données depuis l'ESP32
+        // Read notifications from the ESP32
         characteristic.startNotifications();
         characteristic.addEventListener('characteristicvaluechanged', (event) => {
           const value = new TextDecoder().decode(event.target.value);
           document.getElementById('data').innerText = `Data: ${value}`;
         });
 
-        alert('Connecté à ESP32!');
+        alert('Connected to ESP32!');
       } catch (error) {
         console.error(error);
-        alert('Erreur de connexion');
+        alert('Connection error');
+      }
+    });
+
+    document.getElementById('send').addEventListener('click', async () => {
+      if (!characteristic) {
+        alert('Not connected to ESP32!');
+        return;
+      }
+      try {
+        const message = 'Hello ESP32'; // Example message to send
+        const encoder = new TextEncoder();
+        await characteristic.writeValue(encoder.encode(message));
+        alert('Data sent to ESP32!');
+      } catch (error) {
+        console.error(error);
+        alert('Error sending data');
       }
     });
   </script>
